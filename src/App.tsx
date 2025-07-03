@@ -10,6 +10,11 @@ import Dashboard from "./pages/Dashboard";
 import Assessment from "./pages/Assessment";
 import Consultation from "./pages/Consultation";
 import AIChatPage from "./pages/AIChat";
+import Progress from "./pages/Progress";
+import NutritionPlan from "./pages/NutritionPlan";
+import Recipes from "./pages/Recipes";
+import LabAnalysis from "./pages/LabAnalysis";
+import PantrySync from "./pages/PantrySync";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +32,11 @@ const App = () => (
             <Route path="/assessment" element={<Assessment />} />
             <Route path="/consultation" element={<Consultation />} />
             <Route path="/ai-chat" element={<AIChatPage />} />
+            <Route path="/progress" element={<Progress />} />
+            <Route path="/nutrition-plan" element={<NutritionPlan />} />
+            <Route path="/recipes" element={<Recipes />} />
+            <Route path="/lab-analysis" element={<LabAnalysis />} />
+            <Route path="/pantry-sync" element={<PantrySync />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

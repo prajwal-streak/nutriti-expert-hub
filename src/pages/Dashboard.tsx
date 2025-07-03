@@ -34,7 +34,7 @@ const Dashboard: React.FC = () => {
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2">
                 <User className="h-5 w-5 text-green-500" />
-                Profile Status
+                Health Assessment
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -84,6 +84,63 @@ const Dashboard: React.FC = () => {
               </Button>
             </CardContent>
           </Card>
+
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-red-500" />
+                Lab Analysis
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600 mb-3">Upload lab reports for AI analysis</p>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => navigate('/lab-analysis')}
+              >
+                Upload Labs
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-orange-500" />
+                Smart Pantry
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600 mb-3">Track ingredients & get recipe suggestions</p>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => navigate('/pantry-sync')}
+              >
+                Manage Pantry
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5 text-indigo-500" />
+                Progress Tracking
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600 mb-3">Monitor your health journey</p>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => navigate('/progress')}
+              >
+                View Progress
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -102,16 +159,16 @@ const Dashboard: React.FC = () => {
               <Button 
                 variant="outline" 
                 className="w-full justify-start"
-                onClick={() => navigate('/progress')}
+                onClick={() => navigate('/recipes')}
               >
-                Track Progress
+                Browse Recipes
               </Button>
               <Button 
                 variant="outline" 
                 className="w-full justify-start"
-                onClick={() => navigate('/recipes')}
+                onClick={() => navigate('/lab-analysis')}
               >
-                Browse Recipes
+                Analyze Lab Reports
               </Button>
             </CardContent>
           </Card>
@@ -125,6 +182,7 @@ const Dashboard: React.FC = () => {
                 <p className="text-gray-600">• Account created</p>
                 <p className="text-gray-600">• Assessment pending</p>
                 <p className="text-gray-600">• Welcome email sent</p>
+                <p className="text-gray-600">• AI chat available</p>
               </div>
             </CardContent>
           </Card>
