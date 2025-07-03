@@ -1,412 +1,234 @@
-
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Upload, FileText, AlertTriangle, CheckCircle, TrendingUp, ExternalLink } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { FileText, Upload } from 'lucide-react';
+import { useToast } from "@/components/ui/use-toast"
+import * as pdfjsLib from 'pdfjs-dist';
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.js`;
+
+interface AnalysisResults {
+  criticalFindings: string[];
+  deficiencies: string[];
+  recommendations: string[];
+  researchCitations: any[];
+}
 
 const LabAnalysis: React.FC = () => {
-  const navigate = useNavigate();
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResults, setAnalysisResults] = useState(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [analysisResults, setAnalysisResults] = useState<AnalysisResults | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast()
 
-  const mockLabResults = {
-    summary: "Analysis of blood work dated March 15, 2024",
-    criticalFindings: [
-      {
-        parameter: "Vitamin D",
-        value: "18 ng/mL",
-        normalRange: "30-100 ng/mL",
-        status: "low",
-        severity: "moderate",
-        recommendation: "Supplement with 2000 IU daily and increase sun exposure"
-      },
-      {
-        parameter: "Iron",
-        value: "45 μg/dL",
-        normalRange: "60-170 μg/dL",
-        status: "low",
-        severity: "mild",
-        recommendation: "Include iron-rich foods like spinach, lean meat, and legumes"
-      }
-    ],
-    normalFindings: [
-      {
-        parameter: "Vitamin B12",
-        value: "450 pg/mL",
-        normalRange: "200-900 pg/mL",
-        status: "normal"
-      },
-      {
-        parameter: "Folate",
-        value: "12 ng/mL",
-        normalRange: "3-20 ng/mL",
-        status: "normal"
-      },
-      {
-        parameter: "Total Cholesterol",
-        value: "180 mg/dL",
-        normalRange: "<200 mg/dL",
-        status: "optimal"
-      }
-    ],
-    nutritionalRecommendations: [
-      {
-        nutrient: "Vitamin D",
-        currentIntake: "Low",
-        targetIntake: "2000 IU daily",
-        foodSources: ["Fatty fish", "Fortified milk", "Egg yolks", "Mushrooms"],
-        supplementNeeded: true
-      },
-      {
-        nutrient: "Iron",
-        currentIntake: "Insufficient",
-        targetIntake: "18 mg daily",
-        foodSources: ["Lean red meat", "Spinach", "Lentils", "Quinoa"],
-        supplementNeeded: false
-      }
-    ],
-    riskAssessment: {
-      cardiovascular: "Low risk",
-      diabetes: "Low risk",
-      osteoporosis: "Elevated risk due to low Vitamin D",
-      anemia: "Mild risk due to low iron"
-    },
-    researchCitations: [
-      {
-        title: "Vitamin D deficiency and health outcomes",
-        journal: "New England Journal of Medicine",
-        year: "2023",
-        url: "https://nejm.org/vitamin-d-study"
-      },
-      {
-        title: "Iron deficiency in young adults",
-        journal: "American Journal of Clinical Nutrition",
-        year: "2023",
-        url: "https://ajcn.org/iron-deficiency"
-      }
-    ]
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setUploadedFile(file);
-      toast.success(`File "${file.name}" uploaded successfully`);
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0) {
+      setFile(event.target.files[0]);
     }
   };
 
-  const handleAnalyze = async () => {
-    if (!uploadedFile) {
-      toast.error("Please upload a lab report first");
+  const extractTextFromPDF = useCallback(async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = async () => {
+        try {
+          const typedArray = new Uint8Array(reader.result as ArrayBuffer);
+          const pdf = await pdfjsLib.getDocument(typedArray).promise;
+          let fullText = "";
+
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items.map(item => item.str).join(" ");
+            fullText += pageText + "\n";
+          }
+
+          resolve(fullText);
+        } catch (error) {
+          reject(error);
+        }
+      };
+
+      reader.onerror = (error) => {
+        reject(error);
+      };
+
+      reader.readAsArrayBuffer(file);
+    });
+  }, []);
+
+  const analyzeLabReport = async () => {
+    if (!file) {
+      toast({
+        title: "No file selected",
+        description: "Please upload a lab report to analyze.",
+      })
       return;
     }
 
-    setIsAnalyzing(true);
-    
-    // Simulate AI analysis
-    setTimeout(() => {
-      setAnalysisResults(mockLabResults);
-      setIsAnalyzing(false);
-      toast.success("Lab analysis completed!");
-    }, 3000);
-  };
+    setIsLoading(true);
+    try {
+      const extractedText = await extractTextFromPDF(file);
+      console.log("Extracted Text:", extractedText);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'low': return 'text-red-600 bg-red-50';
-      case 'high': return 'text-orange-600 bg-orange-50';
-      case 'normal': return 'text-green-600 bg-green-50';
-      case 'optimal': return 'text-blue-600 bg-blue-50';
-      default: return 'text-gray-600 bg-gray-50';
+      // Simulate AI analysis
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const mockAnalysisResults: AnalysisResults = {
+        criticalFindings: ["Elevated glucose levels", "Possible vitamin D deficiency"],
+        deficiencies: ["Vitamin D", "Iron"],
+        recommendations: ["Consult endocrinologist", "Increase vitamin D intake", "Iron supplements"],
+        researchCitations: [
+          {
+            title: "Vitamin D and Glucose Levels",
+            source: "Journal of Endocrinology",
+            year: 2022,
+            link: "https://www.example.com/vitamin-d-glucose"
+          },
+          {
+            title: "Iron Deficiency Anemia",
+            source: "The Lancet",
+            year: 2023,
+            link: "https://www.example.com/iron-deficiency"
+          }
+        ]
+      };
+
+      setAnalysisResults(mockAnalysisResults);
+      toast({
+        title: "Analysis Complete",
+        description: "AI analysis of your lab report is complete.",
+      })
+    } catch (error: any) {
+      console.error("Error analyzing lab report:", error);
+      toast({
+        title: "Analysis Failed",
+        description: "An error occurred during the analysis. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const getSeverityIcon = (severity: string) => {
-    switch (severity) {
-      case 'critical': return <AlertTriangle className="h-5 w-5 text-red-500" />;
-      case 'moderate': return <AlertTriangle className="h-5 w-5 text-orange-500" />;
-      case 'mild': return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
-      default: return <CheckCircle className="h-5 w-5 text-green-500" />;
-    }
+  const renderAnalysisResults = () => {
+    if (!analysisResults) return null;
+
+    return (
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-blue-500" />
+            AI Analysis Results
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Critical Findings */}
+          {Array.isArray(analysisResults.criticalFindings) && analysisResults.criticalFindings.length > 0 && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+              <h4 className="font-semibold text-red-800 mb-2">⚠️ Critical Findings - Expert Review Required</h4>
+              <ul className="list-disc list-inside space-y-1">
+                {analysisResults.criticalFindings.map((finding: string, index: number) => (
+                  <li key={index} className="text-red-700">{finding}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Deficiencies */}
+          {Array.isArray(analysisResults.deficiencies) && analysisResults.deficiencies.length > 0 && (
+            <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+              <h4 className="font-semibold text-orange-800 mb-2">📉 Nutritional Deficiencies Detected</h4>
+              <ul className="list-disc list-inside space-y-1">
+                {analysisResults.deficiencies.map((deficiency: string, index: number) => (
+                  <li key={index} className="text-orange-700">{deficiency}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Recommendations */}
+          {Array.isArray(analysisResults.recommendations) && analysisResults.recommendations.length > 0 && (
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <h4 className="font-semibold text-green-800 mb-2">💡 Nutritional Recommendations</h4>
+              <ul className="list-disc list-inside space-y-1">
+                {analysisResults.recommendations.map((rec: string, index: number) => (
+                  <li key={index} className="text-green-700">{rec}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Research Citations */}
+          {Array.isArray(analysisResults.researchCitations) && analysisResults.researchCitations.length > 0 && (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h4 className="font-semibold text-blue-800 mb-2">📚 Research Citations</h4>
+              <div className="space-y-2">
+                {analysisResults.researchCitations.map((citation: any, index: number) => (
+                  <div key={index} className="text-blue-700">
+                    <p className="font-medium">{citation.title}</p>
+                    <p className="text-sm">{citation.source} - {citation.year}</p>
+                    {citation.link && (
+                      <a href={citation.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-sm">
+                        View Study
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Expert Review Status */}
+          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+            <h4 className="font-semibold text-gray-800 mb-2">👩‍⚕️ Expert Review Status</h4>
+            <p className="text-gray-600">
+              {(Array.isArray(analysisResults.criticalFindings) && analysisResults.criticalFindings.length > 0) ||
+               (Array.isArray(analysisResults.deficiencies) && analysisResults.deficiencies.length > 0)
+                ? "Your results have been sent to our certified nutritionists for review. You'll receive an email within 24 hours."
+                : "Your results look normal. Continue following your personalized nutrition plan."}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Lab Report Analysis</h1>
-            <p className="text-gray-600">Upload your lab reports for AI-powered nutritional insights</p>
+    <div className="container mx-auto py-8">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl">Lab Report Analysis</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4">
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="upload">
+                Upload Lab Report (PDF):
+              </Label>
+              <Input
+                type="file"
+                id="upload"
+                className="hidden"
+                onChange={handleFileChange}
+                accept=".pdf"
+              />
+              <Button variant="outline" asChild>
+                <label htmlFor="upload" className="cursor-pointer">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Choose File
+                </label>
+              </Button>
+              {file && <span className="text-gray-500">{file.name}</span>}
+            </div>
+            <Button onClick={analyzeLabReport} disabled={isLoading}>
+              {isLoading ? "Analyzing..." : "Analyze Report"}
+            </Button>
           </div>
-          <Button onClick={() => navigate('/dashboard')}>
-            Back to Dashboard
-          </Button>
-        </div>
-
-        {!analysisResults ? (
-          <Card className="max-w-2xl mx-auto">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Upload Lab Report
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <div className="space-y-2">
-                  <Label htmlFor="lab-upload" className="cursor-pointer">
-                    <div className="text-lg font-medium text-gray-900">
-                      Click to upload your lab report
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      Supports PDF, JPG, PNG files up to 10MB
-                    </div>
-                  </Label>
-                  <Input
-                    id="lab-upload"
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                </div>
-              </div>
-
-              {uploadedFile && (
-                <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-5 w-5 text-blue-600" />
-                    <div>
-                      <div className="font-medium text-blue-900">{uploadedFile.name}</div>
-                      <div className="text-sm text-blue-600">
-                        {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
-                      </div>
-                    </div>
-                  </div>
-                  <Button
-                    onClick={handleAnalyze}
-                    disabled={isAnalyzing}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    {isAnalyzing ? 'Analyzing...' : 'Analyze Report'}
-                  </Button>
-                </div>
-              )}
-
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <h3 className="font-medium text-yellow-900 mb-2">Important Notes:</h3>
-                <ul className="text-sm text-yellow-800 space-y-1">
-                  <li>• Your data is encrypted and secure</li>
-                  <li>• Analysis will be reviewed by certified professionals</li>
-                  <li>• Critical findings will trigger immediate expert consultation</li>
-                  <li>• This analysis is for educational purposes only</li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-6">
-            {/* Summary */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  Analysis Summary
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-700">{analysisResults.summary}</p>
-              </CardContent>
-            </Card>
-
-            {/* Critical Findings */}
-            {analysisResults.criticalFindings.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-red-600">
-                    <AlertTriangle className="h-5 w-5" />
-                    Critical Findings
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {analysisResults.criticalFindings.map((finding, index) => (
-                      <div key={index} className="border border-red-200 rounded-lg p-4 bg-red-50">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            {getSeverityIcon(finding.severity)}
-                            <h3 className="font-semibold text-red-900">{finding.parameter}</h3>
-                          </div>
-                          <Badge className={getStatusColor(finding.status)}>
-                            {finding.status.toUpperCase()}
-                          </Badge>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                          <div>
-                            <span className="text-sm text-gray-600">Your Value: </span>
-                            <span className="font-medium">{finding.value}</span>
-                          </div>
-                          <div>
-                            <span className="text-sm text-gray-600">Normal Range: </span>
-                            <span className="font-medium">{finding.normalRange}</span>
-                          </div>
-                        </div>
-                        <div className="bg-white p-3 rounded border">
-                          <h4 className="font-medium text-gray-900 mb-1">Recommendation:</h4>
-                          <p className="text-sm text-gray-700">{finding.recommendation}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Normal Findings */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-green-600">
-                  <CheckCircle className="h-5 w-5" />
-                  Normal Findings
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {analysisResults.normalFindings.map((finding, index) => (
-                    <div key={index} className="border border-green-200 rounded-lg p-4 bg-green-50">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-semibold text-green-900">{finding.parameter}</h3>
-                        <Badge className={getStatusColor(finding.status)}>
-                          {finding.status.toUpperCase()}
-                        </Badge>
-                      </div>
-                      <div className="text-sm text-green-800">
-                        <div>Value: {finding.value}</div>
-                        <div>Range: {finding.normalRange}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Nutritional Recommendations */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Personalized Nutrition Recommendations</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {analysisResults.nutritionalRecommendations.map((rec, index) => (
-                    <div key={index} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-semibold text-lg">{rec.nutrient}</h3>
-                        {rec.supplementNeeded && (
-                          <Badge variant="secondary">Supplement Recommended</Badge>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <h4 className="font-medium text-gray-900 mb-1">Current Intake:</h4>
-                          <p className="text-gray-700">{rec.currentIntake}</p>
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900 mb-1">Target Intake:</h4>
-                          <p className="text-gray-700">{rec.targetIntake}</p>
-                        </div>
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-gray-900 mb-2">Food Sources:</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {rec.foodSources.map((food, foodIndex) => (
-                            <Badge key={foodIndex} variant="outline">{food}</Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Risk Assessment */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Health Risk Assessment</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {Object.entries(analysisResults.riskAssessment).map(([condition, risk], index) => (
-                    <div key={index} className="border rounded-lg p-4">
-                      <h3 className="font-semibold capitalize mb-2">{condition.replace(/([A-Z])/g, ' $1').trim()}</h3>
-                      <Badge 
-                        className={
-                          risk.includes('Low') ? 'bg-green-100 text-green-800' :
-                          risk.includes('Elevated') ? 'bg-orange-100 text-orange-800' :
-                          'bg-red-100 text-red-800'
-                        }
-                      >
-                        {risk}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Research Citations */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Supporting Research</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {analysisResults.researchCitations.map((citation, index) => (
-                    <div key={index} className="border rounded-lg p-4 hover:bg-gray-50">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="font-medium text-gray-900 mb-1">{citation.title}</h3>
-                          <p className="text-sm text-gray-600">{citation.journal} ({citation.year})</p>
-                        </div>
-                        <Button size="sm" variant="outline">
-                          <ExternalLink className="h-4 w-4 mr-1" />
-                          View
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Expert Review Notice */}
-            <Card className="border-blue-200 bg-blue-50">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="h-5 w-5 text-blue-600 mt-0.5" />
-                  <div>
-                    <h3 className="font-semibold text-blue-900 mb-1">Expert Review Required</h3>
-                    <p className="text-sm text-blue-800 mb-3">
-                      Due to critical findings in your lab results, this analysis has been forwarded to 
-                      Dr. Sarah Johnson, RD for immediate review. You will receive a follow-up within 24 hours.
-                    </p>
-                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-                      Schedule Emergency Consultation
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-      </div>
+          {renderAnalysisResults()}
+        </CardContent>
+      </Card>
     </div>
   );
 };
