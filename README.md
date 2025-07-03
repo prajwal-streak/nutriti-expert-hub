@@ -1,73 +1,140 @@
-# Welcome to your Lovable project
 
-## Project info
+# NutriExpert - AI-Powered Nutrition Platform
 
-**URL**: https://lovable.dev/projects/aed8d932-df2f-43d5-8f73-aa90eb215f61
+A comprehensive nutrition and wellness platform that provides personalized meal plans, AI-powered nutrition advice, and expert consultations.
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+- **AI Nutrition Assistant**: Get instant, personalized nutrition advice
+- **Smart Assessment**: Comprehensive health and lifestyle questionnaire
+- **Expert Consultations**: Video calls with certified nutritionists and doctors
+- **Personalized Plans**: Custom meal plans based on your goals and preferences
+- **User Dashboard**: Track progress and manage your nutrition journey
 
-**Use Lovable**
+## Tech Stack
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/aed8d932-df2f-43d5-8f73-aa90eb215f61) and start prompting.
+- **Frontend**: React with TypeScript
+- **Build Tool**: Vite
+- **Styling**: Tailwind CSS
+- **UI Components**: shadcn/ui
+- **Routing**: React Router
+- **State Management**: React Context
+- **Icons**: Lucide React
 
-Changes made via Lovable will be committed automatically to this repo.
+## Getting Started
 
-**Use your preferred IDE**
+### Prerequisites
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- Node.js (v16 or higher)
+- npm or yarn
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Installation
 
-Follow these steps:
+1. **Clone the repository**
+   ```bash
+   git clone <your-repository-url>
+   cd nutriti-expert-hub
+   ```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+3. **Start the development server**
+   ```bash
+   npm run dev
+   ```
 
-# Step 3: Install the necessary dependencies.
-npm i
+4. **Open your browser**
+   Navigate to `http://localhost:8080` to view the application
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+### Build for Production
+
+```bash
+npm run build
 ```
 
-**Edit a file directly in GitHub**
+The built files will be in the `dist` directory.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Project Structure
 
-**Use GitHub Codespaces**
+```
+src/
+├── components/          # Reusable UI components
+│   ├── ui/             # shadcn/ui components
+│   ├── Header.tsx      # Navigation header
+│   ├── AIChat.tsx      # AI chatbot component
+│   └── ...
+├── contexts/           # React contexts
+│   └── AuthContext.tsx # Authentication context
+├── pages/              # Page components
+│   ├── Index.tsx       # Landing page
+│   ├── Dashboard.tsx   # User dashboard
+│   ├── Assessment.tsx  # Health assessment form
+│   ├── Consultation.tsx# Expert booking page
+│   └── AIChat.tsx      # AI chat page
+├── lib/                # Utility functions
+└── App.tsx             # Main app component
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Key Features Explained
 
-## What technologies are used for this project?
+### 1. Authentication System
+- Simple email/password authentication
+- Persistent login state using localStorage
+- Protected routes for authenticated users
 
-This project is built with:
+### 2. AI Nutrition Assistant
+- Context-aware responses based on user queries
+- Nutrition science-backed advice
+- Integration ready for real AI services
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### 3. Comprehensive Assessment
+- Multi-step form collecting health data
+- Progress tracking through assessment
+- Data validation and storage ready
 
-## How can I deploy this project?
+### 4. Expert Consultation Booking
+- Browse certified nutrition experts
+- Time slot selection
+- Payment integration ready (Stripe)
+- Emergency consultation option
 
-Simply open [Lovable](https://lovable.dev/projects/aed8d932-df2f-43d5-8f73-aa90eb215f61) and click on Share -> Publish.
+### 5. Responsive Design
+- Mobile-first approach
+- Tailwind CSS for consistent styling
+- Smooth animations and transitions
 
-## Can I connect a custom domain to my Lovable project?
+## Environment Setup
 
-Yes, you can!
+Currently, the app runs with mock data for development. To integrate with real services:
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+1. **For AI Chat**: Replace the mock AI responses with calls to OpenAI API or similar
+2. **For Authentication**: Integrate with Supabase, Firebase, or your preferred auth service
+3. **For Payments**: Add Stripe integration for consultation bookings
+4. **For Database**: Connect to your preferred database for storing user data
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## Deployment
+
+The app can be deployed to any static hosting service:
+
+- **Vercel**: Connect your GitHub repository for automatic deployments
+- **Netlify**: Drag and drop the `dist` folder after running `npm run build`
+- **GitHub Pages**: Use GitHub Actions for automatic deployment
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## Support
+
+For questions or support, please contact our development team.
+
+## License
+
+This project is proprietary software. All rights reserved.
