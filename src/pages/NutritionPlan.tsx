@@ -1,15 +1,16 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Clock, Users, ChefHat, ShoppingCart, RefreshCw, Heart } from 'lucide-react';
+import { Clock, Users, ChefHat, ShoppingCart, RefreshCw, Heart, MessageSquare, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import AIChat from '@/components/AIChat';
 
 const NutritionPlan: React.FC = () => {
   const navigate = useNavigate();
   const [selectedDay, setSelectedDay] = useState('monday');
+  const [showAIChat, setShowAIChat] = useState(false);
 
   const weekPlan = {
     monday: {
@@ -163,10 +164,26 @@ const NutritionPlan: React.FC = () => {
             <h1 className="text-3xl font-bold text-gray-900">My Nutrition Plan</h1>
             <p className="text-gray-600">Personalized meal plan approved by Dr. Sarah Johnson, RD</p>
           </div>
-          <Button onClick={() => navigate('/dashboard')}>
-            Back to Dashboard
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowAIChat(!showAIChat)}
+              className="flex items-center gap-2"
+            >
+              <Sparkles className="h-4 w-4" />
+              {showAIChat ? 'Hide' : 'Ask'} AI Assistant
+            </Button>
+            <Button onClick={() => navigate('/dashboard')}>
+              Back to Dashboard
+            </Button>
+          </div>
         </div>
+
+        {showAIChat && (
+          <div className="mb-8">
+            <AIChat />
+          </div>
+        )}
 
         {/* Expert Approval Badge */}
         <Card className="mb-6 border-green-200 bg-green-50">

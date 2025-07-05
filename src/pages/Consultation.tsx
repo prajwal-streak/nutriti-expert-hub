@@ -3,8 +3,9 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Video, Star, CreditCard } from 'lucide-react';
+import { Calendar, Clock, Video, Star, CreditCard, Mail, Phone } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Expert {
   id: string;
@@ -16,6 +17,7 @@ interface Expert {
   price: number;
   availableSlots: string[];
   image: string;
+  email: string;
 }
 
 const experts: Expert[] = [
@@ -26,9 +28,10 @@ const experts: Expert[] = [
     specialization: 'Weight Management & Metabolic Health',
     rating: 4.9,
     experience: '15+ years',
-    price: 150,
+    price: 2500, // ₹2500 instead of $150
     availableSlots: ['10:00 AM', '2:00 PM', '4:00 PM'],
-    image: 'photo-1582562124811-c09040d0a901'
+    image: 'photo-1582562124811-c09040d0a901',
+    email: 'dr.sarah@nutrition.com'
   },
   {
     id: '2',
@@ -37,9 +40,10 @@ const experts: Expert[] = [
     specialization: 'Sports Nutrition & Performance',
     rating: 4.8,
     experience: '12+ years',
-    price: 120,
+    price: 2000, // ₹2000 instead of $120
     availableSlots: ['9:00 AM', '1:00 PM', '5:00 PM'],
-    image: 'photo-1506744038136-46273834b3fb'
+    image: 'photo-1506744038136-46273834b3fb',
+    email: 'dr.chen@nutrition.com'
   },
   {
     id: '3',
@@ -48,9 +52,10 @@ const experts: Expert[] = [
     specialization: 'Chronic Disease Management',
     rating: 4.9,
     experience: '18+ years',
-    price: 180,
+    price: 3000, // ₹3000 instead of $180
     availableSlots: ['11:00 AM', '3:00 PM', '6:00 PM'],
-    image: 'photo-1501854140801-50d01698950b'
+    image: 'photo-1501854140801-50d01698950b',
+    email: 'dr.rodriguez@nutrition.com'
   }
 ];
 
@@ -58,6 +63,7 @@ const Consultation: React.FC = () => {
   const [selectedExpert, setSelectedExpert] = useState<Expert | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string>('');
   const [isBooking, setIsBooking] = useState(false);
+  const { user } = useAuth();
 
   const handleBookConsultation = async () => {
     if (!selectedExpert || !selectedSlot) {
@@ -65,14 +71,37 @@ const Consultation: React.FC = () => {
       return;
     }
 
+    if (!user) {
+      toast.error('Please login to book consultation');
+      return;
+    }
+
     setIsBooking(true);
     
     try {
+      // Simulate payment gateway integration (Razorpay/Paytm)
+      const paymentData = {
+        amount: selectedExpert.price * 100, // Amount in paise
+        currency: 'INR',
+        receipt: `receipt_${Date.now()}`,
+        notes: {
+          expertId: selectedExpert.id,
+          timeSlot: selectedSlot,
+          userEmail: user.email,
+          userName: user.name
+        }
+      };
+
+      // In real implementation, this would redirect to payment gateway
+      console.log('Redirecting to payment gateway with data:', paymentData);
+      
       // Simulate payment processing
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Here you would integrate with Stripe for payment
-      toast.success(`Consultation booked with ${selectedExpert.name} at ${selectedSlot}. Payment of $${selectedExpert.price} processed successfully!`);
+      // Send confirmation emails
+      await sendConfirmationEmails(selectedExpert, selectedSlot, user);
+      
+      toast.success(`Consultation booked with ${selectedExpert.name} at ${selectedSlot}. Payment of ₹${selectedExpert.price} processed successfully! Confirmation emails sent.`);
       
       // Reset selection
       setSelectedExpert(null);
@@ -82,6 +111,62 @@ const Consultation: React.FC = () => {
     } finally {
       setIsBooking(false);
     }
+  };
+
+  const sendConfirmationEmails = async (expert: Expert, timeSlot: string, user: any) => {
+    // Simulate sending emails to both doctor and patient
+    const appointmentDetails = {
+      doctorEmail: expert.email,
+      patientEmail: user.email,
+      appointmentTime: timeSlot,
+      appointmentDate: new Date().toDateString(),
+      meetingLink: `https://meet.google.com/appointment-${Date.now()}`,
+      doctorName: expert.name,
+      patientName: user.name,
+      specialization: expert.specialization,
+      amount: expert.price
+    };
+
+    console.log('Sending confirmation emails:', appointmentDetails);
+    
+    // In real implementation, this would trigger actual email service
+    return true;
+  };
+
+  const handlePaymentRedirect = () => {
+    if (!selectedExpert || !selectedSlot || !user) return;
+
+    // Simulate Razorpay payment gateway
+    const options = {
+      key: 'rzp_test_xxxxxxxxxxxxxx', // Replace with actual Razorpay key
+      amount: selectedExpert.price * 100, // Amount in paise
+      currency: 'INR',
+      name: 'NutriCare Consultations',
+      description: `Consultation with ${selectedExpert.name}`,
+      image: '/logo.png',
+      order_id: `order_${Date.now()}`,
+      handler: function(response: any) {
+        console.log('Payment successful:', response);
+        sendConfirmationEmails(selectedExpert, selectedSlot, user);
+        toast.success('Payment successful! Confirmation emails sent.');
+      },
+      prefill: {
+        name: user.name,
+        email: user.email,
+        contact: '9999999999'
+      },
+      notes: {
+        expertId: selectedExpert.id,
+        timeSlot: selectedSlot
+      },
+      theme: {
+        color: '#3399cc'
+      }
+    };
+
+    // In real implementation, you would load Razorpay script and open payment modal
+    console.log('Would open Razorpay with options:', options);
+    toast.info('Redirecting to payment gateway...');
   };
 
   return (
@@ -127,7 +212,7 @@ const Consultation: React.FC = () => {
                         <p className="text-sm text-gray-600 mb-2">{expert.specialization}</p>
                         <div className="flex items-center justify-between">
                           <Badge variant="secondary">{expert.experience}</Badge>
-                          <span className="text-lg font-bold text-green-600">${expert.price}/session</span>
+                          <span className="text-lg font-bold text-green-600">₹{expert.price.toLocaleString('en-IN')}/session</span>
                         </div>
                       </div>
                     </div>
@@ -159,7 +244,7 @@ const Consultation: React.FC = () => {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-600">Session Duration: 45 minutes</span>
-                        <span className="font-bold text-green-600">${selectedExpert.price}</span>
+                        <span className="font-bold text-green-600">₹{selectedExpert.price.toLocaleString('en-IN')}</span>
                       </div>
                     </div>
 
@@ -191,18 +276,28 @@ const Consultation: React.FC = () => {
                         45-minute personalized session
                       </div>
                       <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4" />
+                        Email confirmations sent to both parties
+                      </div>
+                      <div className="flex items-center gap-2">
                         <CreditCard className="h-4 w-4" />
-                        Secure payment processing
+                        Secure payment via Razorpay/UPI
                       </div>
                     </div>
 
                     <Button 
                       className="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600"
                       onClick={handleBookConsultation}
-                      disabled={!selectedSlot || isBooking}
+                      disabled={!selectedSlot || isBooking || !user}
                     >
-                      {isBooking ? 'Processing Payment...' : `Book Consultation - $${selectedExpert.price}`}
+                      {isBooking ? 'Processing...' : `Book & Pay ₹${selectedExpert.price.toLocaleString('en-IN')}`}
                     </Button>
+
+                    {!user && (
+                      <p className="text-sm text-red-600 text-center">
+                        Please login to book consultation
+                      </p>
+                    )}
                   </>
                 ) : (
                   <div className="text-center py-8">
@@ -218,7 +313,10 @@ const Consultation: React.FC = () => {
         <div className="mt-12">
           <Card>
             <CardHeader>
-              <CardTitle>Emergency Consultation</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Phone className="h-5 w-5 text-red-500" />
+                Emergency Consultation
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
@@ -227,7 +325,7 @@ const Consultation: React.FC = () => {
                     Need urgent nutrition advice? Our emergency consultation service is available 24/7.
                   </p>
                   <p className="text-sm text-red-600 font-medium">
-                    Emergency Rate: $250 for immediate consultation
+                    Emergency Rate: ₹5,000 for immediate consultation
                   </p>
                 </div>
                 <Button variant="destructive" size="lg">
@@ -236,6 +334,16 @@ const Consultation: React.FC = () => {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        <div className="mt-8 p-4 bg-blue-50 rounded-lg">
+          <h3 className="font-semibold text-blue-900 mb-2">What happens after booking?</h3>
+          <div className="text-sm text-blue-800 space-y-1">
+            <p>1. Instant payment confirmation via email & SMS</p>
+            <p>2. Meeting link sent to both you and your expert</p>
+            <p>3. Reminder notifications 24hrs & 1hr before appointment</p>
+            <p>4. Post-consultation summary and recommendations via email</p>
+          </div>
         </div>
       </div>
     </div>
