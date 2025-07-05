@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,7 +17,7 @@ const AIChat: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: "Hello! I'm your personalized AI nutrition expert powered by advanced AI. I can help you with meal planning, nutrition advice, and health guidance. How can I assist you today?",
+      text: "Hi! I'm your AI nutrition assistant. Ask me quick questions about nutrition, meals, or health tips. I'll keep my answers short and focused. How can I help?",
       sender: 'bot',
       timestamp: new Date()
     }
@@ -52,21 +51,18 @@ const AIChat: React.FC = () => {
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: `You are a professional nutrition expert and dietitian. The user is asking: "${userMessage}". 
+              text: `You are a concise nutrition expert. The user asks: "${userMessage}". 
               
-              User context:
-              - Name: ${user?.name || 'User'}
-              - Current goal: Weight management and healthy living
-              - Dietary preference: Mixed diet with focus on balanced nutrition
+              User: ${user?.name || 'User'}
               
-              Please provide a detailed, professional response with specific nutrition advice, meal suggestions, or health guidance. Be personalized and actionable.`
+              Provide a SHORT, direct answer (2-3 sentences max). Be specific and actionable. No long explanations unless asked for details.`
             }]
           }],
           generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 1024,
+            temperature: 0.3,
+            topK: 20,
+            topP: 0.8,
+            maxOutputTokens: 150,
           }
         }),
       });
@@ -76,10 +72,10 @@ const AIChat: React.FC = () => {
       }
 
       const data = await response.json();
-      return data.candidates?.[0]?.content?.parts?.[0]?.text || "I apologize, but I couldn't generate a response. Please try again.";
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || "I couldn't generate a response. Please try again.";
     } catch (error) {
       console.error('Gemini API Error:', error);
-      return "I'm experiencing technical difficulties. Please check your API key or try again later.";
+      return "I'm having technical issues. Please check your API key or try again.";
     }
   };
 
@@ -111,7 +107,7 @@ const AIChat: React.FC = () => {
     } catch (error) {
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: "I apologize, but I'm experiencing technical difficulties. Please try again later.",
+        text: "I'm experiencing technical difficulties. Please try again later.",
         sender: 'bot',
         timestamp: new Date()
       };
@@ -153,7 +149,7 @@ const AIChat: React.FC = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Sparkles className="h-6 w-6 text-green-500" />
-          AI Nutrition Expert - Powered by Gemini AI
+          AI Nutrition Expert - Quick & Focused Answers
         </CardTitle>
         {showApiInput && (
           <div className="bg-blue-50 p-4 rounded-lg">
@@ -233,7 +229,7 @@ const AIChat: React.FC = () => {
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Ask me about nutrition, meal planning, or health advice..."
+              placeholder="Ask me about nutrition, meals, or health advice..."
               className="flex-1"
               disabled={showApiInput}
             />
@@ -242,7 +238,7 @@ const AIChat: React.FC = () => {
             </Button>
           </div>
           <div className="text-xs text-gray-500 mt-2">
-            Powered by Google Gemini AI - Ask specific questions for personalized nutrition advice
+            Powered by Google Gemini AI - Get quick, focused nutrition advice
           </div>
         </div>
       </CardContent>
