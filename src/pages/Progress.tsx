@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import AIChat from '@/components/AIChat';
+import ActivityTracker from '@/components/ActivityTracker';
 
 const ProgressPage: React.FC = () => {
   const navigate = useNavigate();
@@ -92,6 +92,11 @@ const ProgressPage: React.FC = () => {
             <AIChat />
           </div>
         )}
+
+        {/* Add Activity Tracker */}
+        <div className="mb-8">
+          <ActivityTracker />
+        </div>
 
         {/* Progress Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
