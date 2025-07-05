@@ -40,7 +40,15 @@ const LabAnalysis: React.FC = () => {
           for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
             const textContent = await page.getTextContent();
-            const pageText = textContent.items.map(item => item.str).join(" ");
+            const pageText = textContent.items
+              .map(item => {
+                // Type guard to check if item has 'str' property
+                if ('str' in item) {
+                  return item.str;
+                }
+                return '';
+              })
+              .join(" ");
             fullText += pageText + "\n";
           }
 
