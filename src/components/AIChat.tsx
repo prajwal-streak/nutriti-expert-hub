@@ -1,31 +1,32 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Bot, User, Sparkles, AlertCircle } from 'lucide-react';
+import { Send, Bot, User, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { nutritionService } from '@/services/nutritionService';
 
 interface Message {
   id: string;
   text: string;
   sender: 'user' | 'bot';
   timestamp: Date;
+  recommendations?: string[];
 }
 
 const AIChat: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: "Hi! I'm your AI nutrition assistant. Ask me quick questions about nutrition, meals, or health tips. I'll keep my answers short and focused. How can I help?",
+      text: "Hi! I'm your AI nutrition expert. I can help with meal planning, weight management, nutrition advice, and answer questions about healthy eating. What would you like to know?",
       sender: 'bot',
       timestamp: new Date()
     }
   ]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [apiKey, setApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
-  const [showApiInput, setShowApiInput] = useState(!apiKey);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
 
@@ -37,46 +38,24 @@ const AIChat: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
-  const callGeminiAPI = async (userMessage: string): Promise<string> => {
-    if (!apiKey) {
-      return "Please enter your Gemini API key to use the AI assistant. You can get a free API key from Google AI Studio.";
+  const getUserProfile = () => {
+    const savedAssessment = localStorage.getItem(`assessment_${user?.id}`);
+    if (savedAssessment) {
+      const assessment = JSON.parse(savedAssessment);
+      return {
+        age: assessment.personalInfo.age,
+        gender: assessment.personalInfo.gender,
+        weight: assessment.personalInfo.weight,
+        height: assessment.personalInfo.height,
+        activityLevel: assessment.personalInfo.activityLevel,
+        goals: [assessment.goals.primaryGoal],
+        restrictions: [
+          ...assessment.dietaryPreferences.dislikedFoods,
+          ...assessment.healthInfo.allergies
+        ]
+      };
     }
-
-    try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: `You are a concise nutrition expert. The user asks: "${userMessage}". 
-              
-              User: ${user?.name || 'User'}
-              
-              Provide a SHORT, direct answer (2-3 sentences max). Be specific and actionable. No long explanations unless asked for details.`
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.3,
-            topK: 20,
-            topP: 0.8,
-            maxOutputTokens: 150,
-          }
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data.candidates?.[0]?.content?.parts?.[0]?.text || "I couldn't generate a response. Please try again.";
-    } catch (error) {
-      console.error('Gemini API Error:', error);
-      return "I'm having technical issues. Please check your API key or try again.";
-    }
+    return null;
   };
 
   const handleSendMessage = async () => {
@@ -94,20 +73,26 @@ const AIChat: React.FC = () => {
     setIsTyping(true);
 
     try {
-      const aiResponse = await callGeminiAPI(inputText);
+      const userProfile = getUserProfile();
+      const response = await nutritionService.getPersonalizedAdvice({
+        question: inputText,
+        userProfile: userProfile
+      });
       
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: aiResponse,
+        text: response.answer,
         sender: 'bot',
-        timestamp: new Date()
+        timestamp: new Date(),
+        recommendations: response.recommendations
       };
       
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
+      console.error('Nutrition service error:', error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: "I'm experiencing technical difficulties. Please try again later.",
+        text: "I'm having trouble right now. Here's some general advice: Focus on whole foods, stay hydrated, and eat balanced meals with protein, vegetables, and whole grains.",
         sender: 'bot',
         timestamp: new Date()
       };
@@ -124,10 +109,9 @@ const AIChat: React.FC = () => {
     }
   };
 
-  const saveApiKey = () => {
-    localStorage.setItem('gemini_api_key', apiKey);
-    setShowApiInput(false);
-    toast.success('API key saved! You can now chat with the AI assistant.');
+  const handleQuickQuestion = (question: string) => {
+    setInputText(question);
+    setTimeout(() => handleSendMessage(), 100);
   };
 
   if (!user) {
@@ -135,7 +119,7 @@ const AIChat: React.FC = () => {
       <Card className="max-w-2xl mx-auto">
         <CardContent className="p-8 text-center">
           <Bot className="h-16 w-16 mx-auto mb-4 text-green-500" />
-          <h3 className="text-xl font-semibold mb-2">AI Nutrition Assistant</h3>
+          <h3 className="text-xl font-semibold mb-2">AI Nutrition Expert</h3>
           <p className="text-gray-600 mb-4">
             Please sign in to access personalized nutrition guidance.
           </p>
@@ -149,35 +133,38 @@ const AIChat: React.FC = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Sparkles className="h-6 w-6 text-green-500" />
-          AI Nutrition Expert - Quick & Focused Answers
+          AI Nutrition Expert - Personalized Advice
         </CardTitle>
-        {showApiInput && (
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <div className="flex items-start gap-2">
-              <AlertCircle className="h-5 w-5 text-blue-500 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-sm text-blue-800 mb-2">
-                  To use the AI assistant, please enter your free Gemini API key. 
-                  <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                    Get your free API key here
-                  </a>
-                </p>
-                <div className="flex gap-2">
-                  <Input
-                    type="password"
-                    placeholder="Enter your Gemini API key"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button onClick={saveApiKey} disabled={!apiKey.trim()}>
-                    Save
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleQuickQuestion("What should I eat for weight loss?")}
+          >
+            Weight Loss Tips
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleQuickQuestion("How much protein do I need?")}
+          >
+            Protein Needs
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleQuickQuestion("Give me a healthy meal plan")}
+          >
+            Meal Planning
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleQuickQuestion("How much water should I drink?")}
+          >
+            Hydration Guide
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col p-0">
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -198,6 +185,18 @@ const AIChat: React.FC = () => {
                   {message.sender === 'user' && <User className="h-5 w-5 mt-1" />}
                   <div className="flex-1">
                     <p className="whitespace-pre-wrap">{message.text}</p>
+                    
+                    {message.recommendations && (
+                      <div className="mt-3 p-3 bg-white bg-opacity-20 rounded">
+                        <p className="font-medium text-sm mb-2">💡 Quick Tips:</p>
+                        <ul className="text-sm space-y-1">
+                          {message.recommendations.map((rec, index) => (
+                            <li key={index}>• {rec}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    
                     <span className="text-xs opacity-70 mt-2 block">
                       {message.timestamp.toLocaleTimeString()}
                     </span>
@@ -229,16 +228,15 @@ const AIChat: React.FC = () => {
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Ask me about nutrition, meals, or health advice..."
+              placeholder="Ask about nutrition, meals, or health advice..."
               className="flex-1"
-              disabled={showApiInput}
             />
-            <Button onClick={handleSendMessage} disabled={!inputText.trim() || isTyping || showApiInput}>
+            <Button onClick={handleSendMessage} disabled={!inputText.trim() || isTyping}>
               <Send className="h-4 w-4" />
             </Button>
           </div>
           <div className="text-xs text-gray-500 mt-2">
-            Powered by Google Gemini AI - Get quick, focused nutrition advice
+            Powered by intelligent nutrition algorithms - Get personalized advice based on your profile
           </div>
         </div>
       </CardContent>

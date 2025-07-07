@@ -1,309 +1,460 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Clock, Users, ChefHat, ShoppingCart, RefreshCw, Heart, MessageSquare, Sparkles } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import AIChat from '@/components/AIChat';
+import { 
+  ArrowLeft, 
+  Calendar, 
+  Target, 
+  Droplets, 
+  Utensils, 
+  Clock,
+  User,
+  Mail,
+  CheckCircle,
+  AlertCircle,
+  Download
+} from 'lucide-react';
+import { toast } from 'sonner';
+
+interface NutritionPlan {
+  userId: string;
+  createdAt: string;
+  personalInfo: any;
+  targetCalories: number;
+  macros: {
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+  mealPlan: {
+    breakfast: any[];
+    lunch: any[];
+    dinner: any[];
+  };
+  waterTarget: number;
+  restrictions: {
+    dislikedFoods: string[];
+    allergies: string[];
+    dietType: string;
+  };
+  goals: any;
+}
 
 const NutritionPlan: React.FC = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const [selectedDay, setSelectedDay] = useState('monday');
-  const [showAIChat, setShowAIChat] = useState(false);
+  const [nutritionPlan, setNutritionPlan] = useState<NutritionPlan | null>(null);
+  const [selectedDay, setSelectedDay] = useState(0);
+  const [approvalStatus, setApprovalStatus] = useState('pending');
 
-  const weekPlan = {
-    monday: {
-      breakfast: {
-        name: "Protein Oatmeal Bowl",
-        calories: 350,
-        protein: 25,
-        carbs: 45,
-        fat: 8,
-        time: "15 min",
-        ingredients: ["Oats", "Protein powder", "Banana", "Almonds", "Cinnamon"],
-        instructions: "1. Cook oats with water\n2. Mix in protein powder\n3. Top with sliced banana and almonds"
-      },
-      lunch: {
-        name: "Quinoa Buddha Bowl",
-        calories: 480,
-        protein: 22,
-        carbs: 65,
-        fat: 15,
-        time: "20 min",
-        ingredients: ["Quinoa", "Chickpeas", "Avocado", "Spinach", "Tahini"],
-        instructions: "1. Cook quinoa\n2. Roast chickpeas\n3. Assemble bowl with greens\n4. Drizzle with tahini dressing"
-      },
-      dinner: {
-        name: "Grilled Salmon with Vegetables",
-        calories: 420,
-        protein: 35,
-        carbs: 25,
-        fat: 20,
-        time: "25 min",
-        ingredients: ["Salmon fillet", "Broccoli", "Sweet potato", "Olive oil", "Herbs"],
-        instructions: "1. Season and grill salmon\n2. Steam broccoli\n3. Roast sweet potato\n4. Serve with herbs"
-      }
-    },
-    tuesday: {
-      breakfast: {
-        name: "Greek Yogurt Parfait",
-        calories: 320,
-        protein: 20,
-        carbs: 35,
-        fat: 12,
-        time: "10 min",
-        ingredients: ["Greek yogurt", "Berries", "Granola", "Honey", "Chia seeds"],
-        instructions: "1. Layer yogurt in bowl\n2. Add berries and granola\n3. Drizzle with honey\n4. Sprinkle chia seeds"
-      },
-      lunch: {
-        name: "Lentil Soup with Bread",
-        calories: 450,
-        protein: 18,
-        carbs: 70,
-        fat: 10,
-        time: "30 min",
-        ingredients: ["Red lentils", "Vegetables", "Vegetable broth", "Whole grain bread", "Herbs"],
-        instructions: "1. Sauté vegetables\n2. Add lentils and broth\n3. Simmer until tender\n4. Serve with bread"
-      },
-      dinner: {
-        name: "Chicken Stir-fry",
-        calories: 380,
-        protein: 30,
-        carbs: 35,
-        fat: 15,
-        time: "20 min",
-        ingredients: ["Chicken breast", "Mixed vegetables", "Brown rice", "Soy sauce", "Ginger"],
-        instructions: "1. Cook chicken pieces\n2. Stir-fry vegetables\n3. Combine with sauce\n4. Serve over rice"
-      }
+  useEffect(() => {
+    const savedPlan = localStorage.getItem(`nutrition_plan_${user?.id}`);
+    if (savedPlan) {
+      setNutritionPlan(JSON.parse(savedPlan));
     }
+  }, [user?.id]);
+
+  const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+  const requestDoctorApproval = async () => {
+    // Simulate sending email to doctor
+    toast.success('Plan sent to nutritionist for approval!');
+    setApprovalStatus('pending');
+    
+    // Simulate doctor approval after 3 seconds
+    setTimeout(() => {
+      setApprovalStatus('approved');
+      toast.success('Your nutrition plan has been approved by our nutritionist!');
+    }, 3000);
   };
 
-  const currentPlan = weekPlan[selectedDay] || weekPlan.monday;
-  const dailyTotals = {
-    calories: currentPlan.breakfast.calories + currentPlan.lunch.calories + currentPlan.dinner.calories,
-    protein: currentPlan.breakfast.protein + currentPlan.lunch.protein + currentPlan.dinner.protein,
-    carbs: currentPlan.breakfast.carbs + currentPlan.lunch.carbs + currentPlan.dinner.carbs,
-    fat: currentPlan.breakfast.fat + currentPlan.lunch.fat + currentPlan.dinner.fat
+  const downloadPlan = () => {
+    if (!nutritionPlan) return;
+    
+    const planData = {
+      user: user?.name,
+      date: new Date().toLocaleDateString(),
+      ...nutritionPlan
+    };
+    
+    const blob = new Blob([JSON.stringify(planData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `nutrition-plan-${user?.name || 'user'}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    toast.success('Nutrition plan downloaded!');
   };
 
-  const MealCard = ({ meal, mealType }) => (
-    <Card className="hover:shadow-lg transition-shadow">
-      <CardHeader className="pb-3">
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle className="text-lg">{meal.name}</CardTitle>
-            <div className="flex items-center gap-2 mt-1">
-              <Clock className="h-4 w-4 text-gray-500" />
-              <span className="text-sm text-gray-600">{meal.time}</span>
-            </div>
-          </div>
-          <Button size="sm" variant="outline">
-            <RefreshCw className="h-4 w-4 mr-1" />
-            Swap
-          </Button>
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container mx-auto px-4 max-w-2xl">
+          <Card>
+            <CardContent className="p-8 text-center">
+              <h2 className="text-2xl font-bold mb-4">Please Sign In</h2>
+              <p className="text-gray-600 mb-6">
+                You need to be signed in to view your nutrition plan.
+              </p>
+              <Button onClick={() => navigate('/')}>
+                Go to Home
+              </Button>
+            </CardContent>
+          </Card>
         </div>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-4 gap-2 mb-4">
-          <div className="text-center">
-            <div className="font-semibold text-sm">{meal.calories}</div>
-            <div className="text-xs text-gray-600">Calories</div>
-          </div>
-          <div className="text-center">
-            <div className="font-semibold text-sm">{meal.protein}g</div>
-            <div className="text-xs text-gray-600">Protein</div>
-          </div>
-          <div className="text-center">
-            <div className="font-semibold text-sm">{meal.carbs}g</div>
-            <div className="text-xs text-gray-600">Carbs</div>
-          </div>
-          <div className="text-center">
-            <div className="font-semibold text-sm">{meal.fat}g</div>
-            <div className="text-xs text-gray-600">Fat</div>
-          </div>
+      </div>
+    );
+  }
+
+  if (!nutritionPlan) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container mx-auto px-4 max-w-2xl">
+          <Card>
+            <CardContent className="p-8 text-center">
+              <h2 className="text-2xl font-bold mb-4">No Nutrition Plan Found</h2>
+              <p className="text-gray-600 mb-6">
+                Please complete your assessment first to generate a personalized nutrition plan.
+              </p>
+              <Button onClick={() => navigate('/assessment')}>
+                Take Assessment
+              </Button>
+            </CardContent>
+          </Card>
         </div>
-        
-        <div className="mb-3">
-          <h4 className="font-medium text-sm mb-2">Ingredients:</h4>
-          <div className="flex flex-wrap gap-1">
-            {meal.ingredients.map((ingredient, index) => (
-              <Badge key={index} variant="secondary" className="text-xs">
-                {ingredient}
-              </Badge>
-            ))}
-          </div>
-        </div>
-        
-        <div className="mb-4">
-          <h4 className="font-medium text-sm mb-2">Instructions:</h4>
-          <p className="text-sm text-gray-600 whitespace-pre-line">
-            {meal.instructions}
-          </p>
-        </div>
-        
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" className="flex-1">
-            <ChefHat className="h-4 w-4 mr-1" />
-            Cook
-          </Button>
-          <Button size="sm" variant="outline" className="flex-1">
-            <ShoppingCart className="h-4 w-4 mr-1" />
-            Add to Cart
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">My Nutrition Plan</h1>
-            <p className="text-gray-600">Personalized meal plan approved by Dr. Sarah Johnson, RD</p>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/dashboard')}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Your Nutrition Plan</h1>
+              <p className="text-gray-600">Personalized meal plan based on your assessment</p>
+            </div>
           </div>
+          
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowAIChat(!showAIChat)}
+            <Button
+              variant="outline"
+              onClick={downloadPlan}
               className="flex items-center gap-2"
             >
-              <Sparkles className="h-4 w-4" />
-              {showAIChat ? 'Hide' : 'Ask'} AI Assistant
+              <Download className="h-4 w-4" />
+              Download Plan
             </Button>
-            <Button onClick={() => navigate('/dashboard')}>
-              Back to Dashboard
+            <Button
+              onClick={requestDoctorApproval}
+              disabled={approvalStatus === 'approved'}
+              className="flex items-center gap-2"
+            >
+              <Mail className="h-4 w-4" />
+              {approvalStatus === 'approved' ? 'Approved' : 'Request Approval'}
             </Button>
           </div>
         </div>
 
-        {showAIChat && (
-          <div className="mb-8">
-            <AIChat />
-          </div>
-        )}
-
-        {/* Expert Approval Badge */}
-        <Card className="mb-6 border-green-200 bg-green-50">
+        {/* Approval Status */}
+        <Card className="mb-6">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-full">
-                  <Heart className="h-5 w-5 text-green-600" />
-                </div>
+                {approvalStatus === 'approved' ? (
+                  <CheckCircle className="h-6 w-6 text-green-500" />
+                ) : (
+                  <AlertCircle className="h-6 w-6 text-yellow-500" />
+                )}
                 <div>
-                  <h3 className="font-semibold text-green-900">Expert Approved Plan</h3>
-                  <p className="text-sm text-green-700">
-                    Reviewed and approved by Dr. Sarah Johnson, RD - License #12345
+                  <h3 className="font-medium">
+                    {approvalStatus === 'approved' ? 'Plan Approved' : 'Pending Approval'}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {approvalStatus === 'approved' 
+                      ? 'Your nutrition plan has been reviewed and approved by our nutritionist'
+                      : 'Your plan is waiting for nutritionist approval'
+                    }
                   </p>
                 </div>
               </div>
-              <Button variant="outline" size="sm">
-                Contact Expert
-              </Button>
+              <Badge 
+                variant={approvalStatus === 'approved' ? 'default' : 'secondary'}
+                className={approvalStatus === 'approved' ? 'bg-green-500' : 'bg-yellow-500'}
+              >
+                {approvalStatus === 'approved' ? 'Approved' : 'Pending'}
+              </Badge>
             </div>
           </CardContent>
         </Card>
 
-        {/* Daily Summary */}
+        {/* Plan Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5 text-blue-500" />
+                Daily Calories
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">
+                {nutritionPlan.targetCalories}
+              </div>
+              <p className="text-sm text-gray-600">kcal per day</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <Utensils className="h-5 w-5 text-green-500" />
+                Protein
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">
+                {nutritionPlan.macros.protein}g
+              </div>
+              <p className="text-sm text-gray-600">
+                {Math.round((nutritionPlan.macros.protein * 4 / nutritionPlan.targetCalories) * 100)}% of calories
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <Droplets className="h-5 w-5 text-cyan-500" />
+                Water Target
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-cyan-600">
+                {nutritionPlan.waterTarget.toFixed(1)}L
+              </div>
+              <p className="text-sm text-gray-600">per day</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5 text-purple-500" />
+                Goal
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-lg font-bold text-purple-600 capitalize">
+                {nutritionPlan.goals.primaryGoal.replace('-', ' ')}
+              </div>
+              <p className="text-sm text-gray-600">{nutritionPlan.goals.timeframe}</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Restrictions and Preferences */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Daily Nutrition Summary</CardTitle>
+            <CardTitle>Your Dietary Restrictions & Preferences</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center p-4 bg-blue-50 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">{dailyTotals.calories}</div>
-                <div className="text-sm text-blue-800">Total Calories</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <h4 className="font-medium mb-2 text-red-600">Foods to Avoid</h4>
+                <div className="flex flex-wrap gap-2">
+                  {nutritionPlan.restrictions.dislikedFoods.length > 0 ? (
+                    nutritionPlan.restrictions.dislikedFoods.map((food, index) => (
+                      <Badge key={index} variant="destructive">{food}</Badge>
+                    ))
+                  ) : (
+                    <span className="text-gray-500">None specified</span>
+                  )}
+                </div>
               </div>
-              <div className="text-center p-4 bg-green-50 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">{dailyTotals.protein}g</div>
-                <div className="text-sm text-green-800">Protein</div>
+              
+              <div>
+                <h4 className="font-medium mb-2 text-orange-600">Allergies</h4>
+                <div className="flex flex-wrap gap-2">
+                  {nutritionPlan.restrictions.allergies.length > 0 ? (
+                    nutritionPlan.restrictions.allergies.map((allergy, index) => (
+                      <Badge key={index} variant="secondary" className="bg-orange-100 text-orange-800">
+                        {allergy}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-gray-500">None specified</span>
+                  )}
+                </div>
               </div>
-              <div className="text-center p-4 bg-orange-50 rounded-lg">
-                <div className="text-2xl font-bold text-orange-600">{dailyTotals.carbs}g</div>
-                <div className="text-sm text-orange-800">Carbs</div>
-              </div>
-              <div className="text-center p-4 bg-purple-50 rounded-lg">
-                <div className="text-2xl font-bold text-purple-600">{dailyTotals.fat}g</div>
-                <div className="text-sm text-purple-800">Fat</div>
+              
+              <div>
+                <h4 className="font-medium mb-2 text-green-600">Diet Type</h4>
+                <Badge variant="outline" className="bg-green-50 text-green-800 capitalize">
+                  {nutritionPlan.restrictions.dietType || 'Balanced'}
+                </Badge>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Tabs value={selectedDay} onValueChange={setSelectedDay}>
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="monday">Mon</TabsTrigger>
-            <TabsTrigger value="tuesday">Tue</TabsTrigger>
-            <TabsTrigger value="wednesday">Wed</TabsTrigger>
-            <TabsTrigger value="thursday">Thu</TabsTrigger>
-            <TabsTrigger value="friday">Fri</TabsTrigger>
-            <TabsTrigger value="saturday">Sat</TabsTrigger>
-            <TabsTrigger value="sunday">Sun</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value={selectedDay} className="mt-6">
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-xl font-semibold mb-4">Breakfast</h3>
-                <MealCard meal={currentPlan.breakfast} mealType="breakfast" />
-              </div>
-              
-              <div>
-                <h3 className="text-xl font-semibold mb-4">Lunch</h3>
-                <MealCard meal={currentPlan.lunch} mealType="lunch" />
-              </div>
-              
-              <div>
-                <h3 className="text-xl font-semibold mb-4">Dinner</h3>
-                <MealCard meal={currentPlan.dinner} mealType="dinner" />
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
-
-        {/* Shopping List */}
-        <Card className="mt-8">
+        {/* Weekly Meal Plan */}
+        <Card>
           <CardHeader>
-            <CardTitle>Weekly Shopping List</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Weekly Meal Plan
+            </CardTitle>
+            <p className="text-sm text-gray-600">
+              Meals tailored to your preferences - no {nutritionPlan.restrictions.dislikedFoods.join(', ')} included
+            </p>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex flex-wrap gap-2 mb-6">
+              {weekDays.map((day, index) => (
+                <Button
+                  key={day}
+                  variant={selectedDay === index ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedDay(index)}
+                >
+                  {day}
+                </Button>
+              ))}
+            </div>
+
+            <div className="space-y-6">
+              {/* Breakfast */}
               <div>
-                <h4 className="font-medium mb-2">Proteins</h4>
-                <ul className="text-sm space-y-1">
-                  <li>• Salmon fillets (2 lbs)</li>
-                  <li>• Chicken breast (1.5 lbs)</li>
-                  <li>• Greek yogurt (32 oz)</li>
-                  <li>• Protein powder</li>
-                </ul>
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-orange-500" />
+                  Breakfast
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {nutritionPlan.mealPlan.breakfast.map((meal, index) => (
+                    <Card key={index} className="border-orange-200">
+                      <CardContent className="p-4">
+                        <h4 className="font-medium mb-2">{meal.name}</h4>
+                        <div className="text-sm text-gray-600 space-y-1">
+                          <div className="flex justify-between">
+                            <span>Calories:</span>
+                            <span className="font-medium">{meal.calories}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Protein:</span>
+                            <span className="font-medium">{meal.protein}g</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Carbs:</span>
+                            <span className="font-medium">{meal.carbs}g</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Fat:</span>
+                            <span className="font-medium">{meal.fat}g</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </div>
+
+              {/* Lunch */}
               <div>
-                <h4 className="font-medium mb-2">Vegetables & Fruits</h4>
-                <ul className="text-sm space-y-1">
-                  <li>• Broccoli (2 heads)</li>
-                  <li>• Spinach (1 bag)</li>
-                  <li>• Mixed berries</li>
-                  <li>• Bananas (6)</li>
-                </ul>
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-green-500" />
+                  Lunch
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {nutritionPlan.mealPlan.lunch.map((meal, index) => (
+                    <Card key={index} className="border-green-200">
+                      <CardContent className="p-4">
+                        <h4 className="font-medium mb-2">{meal.name}</h4>
+                        <div className="text-sm text-gray-600 space-y-1">
+                          <div className="flex justify-between">
+                            <span>Calories:</span>
+                            <span className="font-medium">{meal.calories}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Protein:</span>
+                            <span className="font-medium">{meal.protein}g</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Carbs:</span>
+                            <span className="font-medium">{meal.carbs}g</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Fat:</span>
+                            <span className="font-medium">{meal.fat}g</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </div>
+
+              {/* Dinner */}
               <div>
-                <h4 className="font-medium mb-2">Grains & Others</h4>
-                <ul className="text-sm space-y-1">
-                  <li>• Quinoa (1 lb)</li>
-                  <li>• Oats (1 container)</li>
-                  <li>• Brown rice</li>
-                  <li>• Almonds</li>
-                </ul>
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-blue-500" />
+                  Dinner
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {nutritionPlan.mealPlan.dinner.map((meal, index) => (
+                    <Card key={index} className="border-blue-200">
+                      <CardContent className="p-4">
+                        <h4 className="font-medium mb-2">{meal.name}</h4>
+                        <div className="text-sm text-gray-600 space-y-1">
+                          <div className="flex justify-between">
+                            <span>Calories:</span>
+                            <span className="font-medium">{meal.calories}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Protein:</span>
+                            <span className="font-medium">{meal.protein}g</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Carbs:</span>
+                            <span className="font-medium">{meal.carbs}g</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Fat:</span>
+                            <span className="font-medium">{meal.fat}g</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </div>
             </div>
-            <Button className="mt-4 w-full">
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              Export Shopping List
-            </Button>
+
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+              <h4 className="font-medium text-blue-900 mb-2">💡 Plan Notes</h4>
+              <ul className="text-sm text-blue-800 space-y-1">
+                <li>• All meals exclude your disliked foods: {nutritionPlan.restrictions.dislikedFoods.join(', ')}</li>
+                <li>• Meals are designed for your {nutritionPlan.goals.primaryGoal.replace('-', ' ')} goal</li>
+                <li>• Drink {nutritionPlan.waterTarget.toFixed(1)}L of water daily</li>
+                <li>• You can swap similar meals within each category</li>
+                <li>• Track your progress in the Progress section</li>
+              </ul>
+            </div>
           </CardContent>
         </Card>
       </div>
