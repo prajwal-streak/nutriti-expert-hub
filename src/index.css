@@ -48,13 +48,21 @@ All colors MUST be HSL.
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
 
-    /* Custom nutrition theme colors */
+    /* Premium fitness app colors */
     --health-primary: 142 76% 36%;
     --health-secondary: 196 100% 47%;
     --health-accent: 45 93% 58%;
     --success: 142 76% 36%;
     --warning: 45 93% 58%;
     --info: 196 100% 47%;
+    --gradient-primary: 142 76% 36%;
+    --gradient-secondary: 196 100% 47%;
+    --premium-gold: 45 93% 58%;
+    --chart-1: 142 76% 36%;
+    --chart-2: 196 100% 47%;
+    --chart-3: 45 93% 58%;
+    --chart-4: 320 65% 52%;
+    --chart-5: 271 91% 65%;
   }
 
   .dark {
@@ -97,11 +105,19 @@ All colors MUST be HSL.
 
 @layer components {
   .gradient-bg {
-    background: linear-gradient(135deg, hsl(var(--health-primary)) 0%, hsl(var(--health-secondary)) 100%);
+    background: linear-gradient(135deg, hsl(var(--gradient-primary)) 0%, hsl(var(--gradient-secondary)) 100%);
+  }
+
+  .premium-gradient {
+    background: linear-gradient(135deg, hsl(var(--gradient-primary)) 0%, hsl(var(--premium-gold)) 50%, hsl(var(--gradient-secondary)) 100%);
   }
 
   .glass-card {
-    @apply bg-white/80 backdrop-blur-sm border border-white/20 shadow-lg;
+    @apply bg-white/80 backdrop-blur-sm border border-white/20 shadow-lg rounded-xl;
+  }
+
+  .premium-card {
+    @apply bg-gradient-to-br from-white via-white/95 to-white/90 backdrop-blur-xl border border-white/30 shadow-2xl rounded-2xl;
   }
 
   .animate-fade-in {
@@ -110,6 +126,14 @@ All colors MUST be HSL.
 
   .animate-slide-up {
     animation: slideUp 0.6s ease-out forwards;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.4s ease-out forwards;
+  }
+
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite alternate;
   }
 
   @keyframes fadeIn {
@@ -132,5 +156,34 @@ All colors MUST be HSL.
       opacity: 1;
       transform: translateY(0);
     }
+  }
+
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes glow {
+    from {
+      box-shadow: 0 0 20px hsl(var(--gradient-primary) / 0.3);
+    }
+    to {
+      box-shadow: 0 0 30px hsl(var(--gradient-primary) / 0.6), 0 0 40px hsl(var(--gradient-secondary) / 0.3);
+    }
+  }
+
+  /* Professional hover effects */
+  .hover-lift {
+    @apply transition-all duration-300 hover:scale-105 hover:shadow-xl;
+  }
+
+  .hover-glow {
+    @apply transition-all duration-300 hover:shadow-lg hover:shadow-primary/25;
   }
 }
